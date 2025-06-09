@@ -1,366 +1,236 @@
+# --- Importações ---
 import pygame
 import random
 import os
 import tkinter as tk
 from tkinter import messagebox
-from recursos.funcoes import inicializarBancoDeDados
-from recursos.funcoes import escreverDados
 import json
 import sys
 import math
 
+
+# --- Inicialização do Pygame e Variáveis Globais ---
 pygame.init()
-em_pausa = False
-inicializarBancoDeDados()
-tamanho = (1000,700)
-relogio = pygame.time.Clock()
-tela = pygame.display.set_mode( tamanho ) 
+# inicializarBancoDeDados()
+
+# Configurações da tela e relógio
+tamanho = (1000, 700)
+tela = pygame.display.set_mode(tamanho)
 pygame.display.set_caption("Paper Run: Konan Edition")
-icone  = pygame.image.load("Recursos/assets/icone.png")
-pygame.display.set_icon(icone)
-branco = (255,255,255)
-preto = (0, 0 ,0 )
-iron = pygame.image.load("Recursos/assets/iron.png")
-fundoStart = pygame.image.load("Recursos/assets/fundoStart.png")
-fundoJogo = pygame.image.load("Recursos/assets/fundoJogo.png")
-fundoDead = pygame.image.load("Recursos/assets/fundoDead.png")
-passaro = pygame.image.load("Recursos/assets/konan.gif")
-missel = pygame.image.load("Recursos/assets/missile.png")
-missileSound = pygame.mixer.Sound("Recursos/assets/missile.wav")
-explosaoSound = pygame.mixer.Sound("Recursos/assets/explosao.wav")
-fonteMenu = pygame.font.SysFont("comicsans",18)
-fonteMorte = pygame.font.SysFont("arial",120)
-fonteTexto = pygame.font.Font("Recursos/assets/Audiowide-Regular.ttf", 16)
-pygame.mixer.music.load("Recursos/assets/ironsound.mp3")
+relogio = pygame.time.Clock()
 
+# Cores
+branco = (255, 255, 255)
+preto = (0, 0, 0)
+ciano_claro = (170, 210, 220)
+azul_escuro = (8,39,76)
+roxo_botao = (149, 61, 158) # Cor roxa para o botão, sem transparência
 
+# --- Carregamento de Assets (Imagens, Fontes, Sons) ---
+try:
+    # Ícone
+    icone = pygame.image.load("Recursos/assets/icone.png")
+    pygame.display.set_icon(icone)
+    
+    # Imagens de Fundo
+    fundoStart = pygame.image.load("Recursos/assets/fundoStart.png")
+    fundoJogo = pygame.image.load("Recursos/assets/fundoJogo.png")
+    fundoInstrucoes = pygame.image.load("Recursos/assets/instrucoes.jpg")
+    fundoDead = pygame.image.load("Recursos/assets/fundoDead.png")
+    
+    # Sprites
+    iron = pygame.image.load("Recursos/assets/iron.png")
+    passaro = pygame.image.load("Recursos/assets/konan.gif")
+    missel = pygame.image.load("Recursos/assets/missile.png")
+    
+    # Sons e Música
+    pygame.mixer.init() # Inicializa o mixer SÓ UMA VEZ
+    entrada_sound = pygame.mixer.Sound("Recursos/assets/entradasound.mp3")
+    pygame.mixer.music.load("Recursos/assets/ironsound.mp3")
+    
+    # Fontes
+    fonteTexto = pygame.font.Font("Recursos/assets/Audiowide-Regular.ttf", 16)
+    fonteMenu = pygame.font.Font("Recursos/assets/roguehero.ttf", 20)
+    fonteMenuMaior = pygame.font.Font("Recursos/assets/roguehero.ttf", 35)
 
+except Exception as e:
+    print(f"Erro ao carregar um ou mais assets: {e}")
+    pygame.quit()
+    sys.exit()
 
+# --- Funções de Cada Tela do Jogo ---
 
-
-def tela_boas_vindas(nome):
-    cinza_claro = (230, 230, 230)
+def start():
+    """Função da tela de menu inicial."""
+    pygame.mixer.music.stop() # Garante que a música de outras telas pare
+    entrada_sound.play() # Toca o som de entrada do menu
     
     while True:
+        mouse_pos = pygame.mouse.get_pos()
+        tela.blit(fundoStart, (0, 0))
+
+        # Definição dos retângulos dos botões
+        botao_iniciar_rect = pygame.Rect(150, 320, 150, 40)
+        botao_sair_rect = pygame.Rect(150, 390, 150, 40)
+        
+        # Desenha os botões
+        pygame.draw.rect(tela, branco, botao_iniciar_rect, border_radius=15)
+        startTexto = fonteTexto.render("INICIAR GAME", True, azul_escuro)
+        tela.blit(startTexto, startTexto.get_rect(center=botao_iniciar_rect.center))
+
+        pygame.draw.rect(tela, branco, botao_sair_rect, border_radius=15)
+        quitTexto = fonteTexto.render("SAIR DO GAME", True, azul_escuro)
+        tela.blit(quitTexto, quitTexto.get_rect(center=botao_sair_rect.center))
+        
+        # Lógica de eventos
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif evento.type == pygame.MOUSEBUTTONUP:
-                if botao_iniciar.collidepoint(evento.pos):
-                    return  # Sai da tela e começa o jogo
-
-        tela.fill(cinza_claro)
-
-        # Texto com o nome do jogador
-        saudacao = fonteMenu.render(f"Bem-vindo, {nome}!", True, preto)
-        tela.blit(saudacao, (400, 180))
-
-        # Explicações simples
-        explicacao1 = fonteMenu.render("Use as setas para desviar dos mísseis.", True, preto)
-        explicacao2 = fonteMenu.render("Pressione ESPAÇO para pausar o jogo.", True, preto)
-        tela.blit(explicacao1, (320, 220))
-        tela.blit(explicacao2, (320, 250))
-
-        # Botão para iniciar o jogo
-        botao_iniciar = pygame.draw.rect(tela, (0, 150, 0), (400, 310, 200, 50), border_radius=10)
-        texto_botao = fonteMenu.render("Iniciar Jogo", True, branco)
-        tela.blit(texto_botao, (450, 325))
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                if botao_iniciar_rect.collidepoint(mouse_pos):
+                    entrada_sound.stop()
+                    pedir_nome_e_avancar()
+                if botao_sair_rect.collidepoint(mouse_pos):
+                    pygame.quit()
+                    sys.exit()
 
         pygame.display.update()
         relogio.tick(60)
-        
-def jogar():
-    largura_janela = 300
-    altura_janela = 50
-    def obter_nome():
-        global nome
-        nome = entry_nome.get()  # Obtém o texto digitado
-        if not nome:  # Se o campo estiver vazio
-            messagebox.showwarning("Aviso", "Por favor, digite seu nome!")  # Exibe uma mensagem de aviso
-        else:
-            #print(f'Nome digitado: {nome}')  # Exibe o nome no console
-            root.destroy()  # Fecha a janela após a entrada válida
 
-    # Criação da janela principal
+def pedir_nome_e_avancar():
+    """Função que usa Tkinter para pedir o nome e, se conseguir, avança para a tela de instruções."""
+    nome_coletado = None
+    
     root = tk.Tk()
-    # Obter as dimensões da tela
+    root.title("Informe seu Nickname")
+    root.withdraw()
+
+    largura_janela = 300
+    altura_janela = 120
     largura_tela = root.winfo_screenwidth()
     altura_tela = root.winfo_screenheight()
     pos_x = (largura_tela - largura_janela) // 2
     pos_y = (altura_tela - altura_janela) // 2
     root.geometry(f"{largura_janela}x{altura_janela}+{pos_x}+{pos_y}")
-    root.title("Informe seu nickname")
-    root.protocol("WM_DELETE_WINDOW", obter_nome)
-
-    # Entry (campo de texto)
-    entry_nome = tk.Entry(root)
-    entry_nome.pack()
-
-    # Botão para pegar o nome
-    botao = tk.Button(root, text="Enviar", command=obter_nome)
-    botao.pack()
-
-    # Inicia o loop da interface gráfica
-    root.mainloop()
-    tela_boas_vindas(nome)
-
+    root.deiconify()
     
+    def obter_nome():
+        nonlocal nome_coletado
+        nome_coletado = entry_nome.get().strip()
+        if not nome_coletado:
+            messagebox.showwarning("Aviso", "Por favor, digite seu nome!")
+        else:
+            root.destroy()
 
+    label = tk.Label(root, text="Digite seu nome para continuar:")
+    label.pack(pady=10)
+    entry_nome = tk.Entry(root)
+    entry_nome.pack(pady=5)
+    botao = tk.Button(root, text="Confirmar", command=obter_nome)
+    botao.pack(pady=10)
+    
+    root.mainloop()
+
+    if nome_coletado:
+        tela_boas_vindas(nome_coletado)
+    else:
+        print("Coleta de nome cancelada.")
+        start() # Volta para o menu inicial
+
+def tela_boas_vindas(nome_jogador):
+    """Função que mostra a tela de instruções e boas-vindas."""
+    while True:
+        mouse_pos = pygame.mouse.get_pos()
+        tela.blit(fundoInstrucoes, (0, 0))
+
+        # Textos de boas-vindas e instruções
+        texto_bem_vindo = fonteMenuMaior.render("Bem-vindo", True, preto)
+        rect_bem_vindo = texto_bem_vindo.get_rect(center=(tela.get_width() // 2, 45))
+        
+        texto_nome = fonteMenuMaior.render(f"{nome_jogador}", True, preto)
+        rect_nome = texto_nome.get_rect(centerx=rect_bem_vindo.centerx, top=rect_bem_vindo.bottom + 10)
+        
+        instrucao1 = fonteMenu.render("Use as setas para desviar dos mísseis", True, branco)
+        rect_instrucao1 = instrucao1.get_rect(centerx=rect_nome.centerx, top=rect_nome.bottom + 29)
+
+        instrucao2 = fonteMenu.render("Pressione ESPAÇO para pausar o jogo", True, branco)
+        rect_instrucao2 = instrucao2.get_rect(centerx=rect_instrucao1.centerx, top=rect_instrucao1.bottom + 10)
+
+        tela.blit(texto_bem_vindo, rect_bem_vindo)
+        tela.blit(texto_nome, rect_nome)
+        tela.blit(instrucao1, rect_instrucao1)
+        tela.blit(instrucao2, rect_instrucao2)
+        
+        # Botão para iniciar o jogo
+        botao_iniciar_rect = pygame.Rect(0, 0, 200, 50)
+        botao_iniciar_rect.center = (tela.get_width() // 2, 245)
+        pygame.draw.rect(tela, roxo_botao, botao_iniciar_rect, border_radius=10)
+        
+        texto_botao = fonteMenu.render("Iniciar Jogo", True, branco)
+        tela.blit(texto_botao, texto_botao.get_rect(center=botao_iniciar_rect.center))
+        
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                if botao_iniciar_rect.collidepoint(mouse_pos):
+                    loop_principal_do_jogo(nome_jogador)
+                    return
+
+        pygame.display.update()
+        relogio.tick(60)
+
+def loop_principal_do_jogo(nome_jogador):
+    """Função onde o jogo de desviar dos mísseis acontece."""
+    em_pausa = False
     posicaoXPersona = 500
     posicaoYPersona = 500
-    movimentoXPersona  = 0
-    #movimentoYPersona  = 0
+    movimentoXPersona = 0
     posicaoXMissel = 400
     posicaoYMissel = -240
     velocidadeMissel = 1
-    pygame.mixer.Sound.play(missileSound)
-    pygame.mixer.music.play(-1)
     pontos = 0
-    larguraPersona = 100
-    alturaPersona = 150
-    larguaMissel  = 150
-    alturaMissel  = 125
-    dificuldade  = 30
-    raio_base = 30
-    bicho_x = random.randint(10, 900)
-    bicho_y = random.randint(10, 600)
-    bicho_vx = random.choice([-2, -1, 1, 2])
-    bicho_vy = random.choice([-2, -1, 1, 2])
-    tempo_direcao_bicho = pygame.time.get_ticks()
-
-
-    texto = fonteMenu.render("Pontos: "+str(pontos), True, branco)
-    tela.blit(texto, (15,15))
-    pausar = fonteMenu.render("Press Space to Pause Game. ", True, branco)
-    tela.blit(pausar, (15,35))
-    instrucao = fonteMenu.render("Press Space to Pause Game", True, branco)
-    tela.blit(instrucao, (750, 15))
-
-    while True:
-        global em_pausa
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                quit()
-            elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_SPACE:
-                em_pausa = not em_pausa
-            elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_RIGHT:
-                movimentoXPersona = 15
-            elif evento.type == pygame.KEYDOWN and evento.key == pygame.K_LEFT:
-                movimentoXPersona = -15
-            elif evento.type == pygame.KEYUP and evento.key == pygame.K_RIGHT:
-                movimentoXPersona = 0
-            elif evento.type == pygame.KEYUP and evento.key == pygame.K_LEFT:
-                movimentoXPersona = 0
-
-        posicaoXPersona = posicaoXPersona + movimentoXPersona            
-               
-        
-        if posicaoXPersona < -40 :
-            posicaoXPersona = -30
-        elif posicaoXPersona > 900:
-            posicaoXPersona = 890
-            
-        if posicaoYPersona < 0 :
-            posicaoYPersona = 15
-        elif posicaoYPersona > 473:
-            posicaoYPersona = 463
-        
-            
-        tela.fill(branco)
-        tela.blit(fundoJogo, (0,0) )
-        #pygame.draw.circle(tela, preto, (posicaoXPersona,posicaoYPersona), 40, 0 )
-        tela.blit( iron, (posicaoXPersona, posicaoYPersona) )
-        #Joao paulolo
-        posicaoYMissel = posicaoYMissel + velocidadeMissel
-        if posicaoYMissel > 600:
-            posicaoYMissel = -240
-            pontos = pontos + 1
-            velocidadeMissel = velocidadeMissel + 1
-            posicaoXMissel = random.randint(0,800)
-            pygame.mixer.Sound.play(missileSound)
-            
-            
-        tela.blit( missel, (posicaoXMissel, posicaoYMissel) )
-        
-        texto = fonteMenu.render("Pontos: "+str(pontos), True, branco)
-        tela.blit(texto, (15,15))
-        pausar = fonteMenu.render("Press Space to Pause Game. ", True, branco)
-        tela.blit(pausar, (15,35))
-        
-        pixelsPersonaX = list(range(posicaoXPersona, posicaoXPersona+larguraPersona))
-        pixelsPersonaY = list(range(posicaoYPersona, posicaoYPersona+alturaPersona))
-        pixelsMisselX = list(range(posicaoXMissel, posicaoXMissel + larguaMissel))
-        pixelsMisselY = list(range(posicaoYMissel, posicaoYMissel + alturaMissel))
-        
-        os.system("cls")
-        # print( len( list( set(pixelsMisselX).intersection(set(pixelsPersonaX))   ) )   )
-        if  len( list( set(pixelsMisselY).intersection(set(pixelsPersonaY))) ) > dificuldade:
-            if len( list( set(pixelsMisselX).intersection(set(pixelsPersonaX))   ) )  > dificuldade:
-                escreverDados(nome, pontos)
-                dead()
-                
-            else:
-                print("Ainda Vivo, mas por pouco!")
-        else:
-            print("Ainda Vivo") 
-
-        if em_pausa:
-            overlay = pygame.Surface(tela.get_size(), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 200))  # Tela bem escura
-            tela.blit(overlay, (0, 0))
-
-            texto_pause = pygame.font.SysFont("arial", 50).render("Jogo pausado", True, (200, 0, 0))  # Texto vermelho
-            tamanho = tela.get_size()
-            texto_rect = texto_pause.get_rect(center=(tamanho[0] // 2, tamanho[1] // 2))
-            tela.blit(texto_pause, texto_rect)
-
-            pygame.display.update()
-
-        while em_pausa:
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-
-                if evento.type == pygame.KEYDOWN:
-                    if evento.key == pygame.K_SPACE:
-                         em_pausa = False
-
-        tempo = pygame.time.get_ticks() / 1000  
-        raio_pulsante = int(raio_base + 10 * math.sin(tempo * 2))
-        pygame.draw.circle(tela, (255, 255, 0), (950, 50), raio_pulsante)  
-
-        # Atualizar movimento do bicho randômico
-        bicho_x += bicho_vx
-        bicho_y += bicho_vy
-
-# Mudar direção a cada 1.5 segundo
-        if pygame.time.get_ticks() - tempo_direcao_bicho > 1500:
-            bicho_vx = random.choice([-2, -1, 1, 2])
-            bicho_vy = random.choice([-2, -1, 1, 2])
-            tempo_direcao_bicho = pygame.time.get_ticks()
-
-# Limites de tela
-        if bicho_x < 0 or bicho_x > 950:
-             bicho_vx *= -1
-        if bicho_y < 0 or bicho_y > 650:
-             bicho_vy *= -1
-        tela.blit(passaro, (bicho_x, bicho_y))
-
-        pygame.display.update()
-        relogio.tick(60)
-
-
-def start():
-    larguraButtonStart = 150
-    alturaButtonStart  = 40
-    larguraButtonQuit = 150
-    alturaButtonQuit  = 40
     
-
+    # Lógica de som do jogo
+    pygame.mixer.music.play(-1) # Toca a música do jogo em loop
+    
     while True:
+        # Lógica de eventos do jogo
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
-                quit()
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if startButton.collidepoint(evento.pos):
-                    larguraButtonStart = 150
-                    alturaButtonStart  = 35
-                if quitButton.collidepoint(evento.pos):
-                    larguraButtonQuit = 150
-                    alturaButtonQuit  = 35
+                pygame.quit()
+                sys.exit()
+            # Seus eventos de KEYDOWN e KEYUP para mover o personagem
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_RIGHT:
+                    movimentoXPersona = 15
+                elif evento.key == pygame.K_LEFT:
+                    movimentoXPersona = -15
+            if evento.type == pygame.KEYUP:
+                if evento.key in [pygame.K_LEFT, pygame.K_RIGHT]:
+                    movimentoXPersona = 0
 
-                
-            elif evento.type == pygame.MOUSEBUTTONUP:
-                # Verifica se o clique foi dentro do retângulo
-                if startButton.collidepoint(evento.pos):
-                    #pygame.mixer.music.play(-1)
-                    larguraButtonStart = 150
-                    alturaButtonStart  = 50
-                    jogar()
-                if quitButton.collidepoint(evento.pos):
-                    #pygame.mixer.music.play(-1)
-                    larguraButtonQuit = 150
-                    alturaButtonQuit  = 50
-                    quit()
-                    
-            
-            
-        tela.fill(branco)
-        tela.blit(fundoStart, (0,0) )
+        # Lógica de atualização de posição, colisão, etc.
+        posicaoXPersona += movimentoXPersona
+        # Aqui vai o resto da sua lógica de jogo que estava faltando:
+        # limites de tela, movimento do míssil, verificação de colisão, etc.
 
-        startButton = pygame.draw.rect(tela, branco, (150,320, larguraButtonStart, alturaButtonStart), border_radius=15)
-        startTexto = fonteTexto.render("INICIAR GAME", True, preto)
-        tela.blit(startTexto, (164,329))
+        # Desenho na tela
+        tela.blit(fundoJogo, (0, 0))
+        tela.blit(iron, (posicaoXPersona, posicaoYPersona))
+        tela.blit(missel, (posicaoXMissel, posicaoYMissel))
         
-        quitButton = pygame.draw.rect(tela, branco, (150,390, larguraButtonQuit, alturaButtonQuit), border_radius=15)
-        quitTexto = fonteTexto.render("SAIR DO GAME", True, preto)
-        tela.blit(quitTexto, (158,399))
-        
+        texto_pontos = fonteMenu.render("Pontos: " + str(pontos), True, branco)
+        tela.blit(texto_pontos, (15, 15))
+
         pygame.display.update()
         relogio.tick(60)
 
+# (A função 'dead()' não foi fornecida no seu último código, então não a incluí.
+# Se precisar dela, pode colar aqui.)
 
-def dead():
-    pygame.mixer.music.stop()
-    pygame.mixer.Sound.play(explosaoSound)
-    larguraButtonStart = 150
-    alturaButtonStart  = 40
-    larguraButtonQuit = 150
-    alturaButtonQuit  = 40
-
-    # Carrega os dados do log
-    try:
-        with open("log.dat", "r") as f:
-            log_partidas = json.load(f)
-    except:
-        log_partidas = {}
-
-    # Pega os últimos 5 registros
-    registros = list(log_partidas.items())[-5:]
-
-    while True:
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                quit()
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if startButton.collidepoint(evento.pos):
-                    jogar()
-                elif quitButton.collidepoint(evento.pos):
-                    quit()
-
-        tela.fill(branco)
-        tela.blit(fundoDead, (0, 0))
-
-        # ==== Caixa cinza no canto inferior direito ====
-        largura_caixa = 400
-        altura_caixa = 130
-        pos_x = tela.get_width() - largura_caixa - 20
-        pos_y = tela.get_height() - altura_caixa - 20
-
-        overlay = pygame.Surface((largura_caixa, altura_caixa), pygame.SRCALPHA)
-        overlay.fill((200, 200, 200, 180))  # cinza com transparência
-        tela.blit(overlay, (pos_x, pos_y))
-
-        # Título
-        titulo = fonteMenu.render("Últimos 5 jogos:", True, preto)
-        tela.blit(titulo, (pos_x + 10, pos_y + 5))
-
-        # Lista de partidas
-        for i, (nickname, (pontos, data)) in enumerate(registros[::-1]):
-            texto = fonteMenu.render(f"{i+1}. {nickname} - {pontos} pts - {data}", True, preto)
-            tela.blit(texto, (pos_x + 10, pos_y + 25 + i * 20))
-
-        # Botões
-        startButton = pygame.draw.rect(tela, branco, (10, 10, larguraButtonStart, alturaButtonStart), border_radius=15)
-        startTexto = fonteMenu.render("Iniciar Game", True, preto)
-        tela.blit(startTexto, (25, 12))
-
-        quitButton = pygame.draw.rect(tela, branco, (10, 60, larguraButtonQuit, alturaButtonQuit), border_radius=15)
-        quitTexto = fonteMenu.render("Sair do Game", True, preto)
-        tela.blit(quitTexto, (25, 62))
-
-        pygame.display.update()
-        relogio.tick(60) 
+# --- Ponto de Partida do Programa ---
+# Começa o programa exibindo a tela de menu inicial.
 start()
