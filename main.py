@@ -23,8 +23,13 @@ relogio = pygame.time.Clock()
 branco = (255, 255, 255)
 preto = (0, 0, 0)
 ciano_claro = (170, 210, 220)
+ciano_konan = (210,239,246)
 azul_escuro = (8,39,76)
-roxo_botao = (149, 61, 158) # Cor roxa para o botão, sem transparência
+cor_botao = (28, 63, 90)
+AZUL_CHUVA = (100, 110, 140)
+COR_PLAYER = (150, 150, 255) # Placeholder para Konan
+COR_INIMIGO = (255, 100, 0)   # Placeholder para Obito
+COR_PROJETIL = (255, 50, 0)    # Placeholder para Bola de Fogo 
 
 # --- Carregamento de Assets (Imagens, Fontes, Sons) ---
 try:
@@ -35,18 +40,18 @@ try:
     # Imagens de Fundo
     fundoStart = pygame.image.load("Recursos/assets/fundoStart.png")
     fundoJogo = pygame.image.load("Recursos/assets/fundoJogo.png")
-    fundoInstrucoes = pygame.image.load("Recursos/assets/instrucoes.jpg")
+    fundoInstrucoes = pygame.image.load("Recursos/assets/instrucoes.png")
     fundoDead = pygame.image.load("Recursos/assets/fundoDead.png")
     
     # Sprites
-    iron = pygame.image.load("Recursos/assets/iron.png")
     passaro = pygame.image.load("Recursos/assets/konan.gif")
-    missel = pygame.image.load("Recursos/assets/missile.png")
+    
     
     # Sons e Música
-    pygame.mixer.init() # Inicializa o mixer SÓ UMA VEZ
+    pygame.mixer.init() 
+    instrucoes_sound = pygame.mixer.Sound("Recursos/assets/instrucoes.mp3")
     entrada_sound = pygame.mixer.Sound("Recursos/assets/entradasound.mp3")
-    pygame.mixer.music.load("Recursos/assets/ironsound.mp3")
+    
     
     # Fontes
     fonteTexto = pygame.font.Font("Recursos/assets/Audiowide-Regular.ttf", 16)
@@ -62,7 +67,7 @@ except Exception as e:
 
 def start():
     """Função da tela de menu inicial."""
-    pygame.mixer.music.stop() # Garante que a música de outras telas pare
+    pygame.mixer.music.stop() 
     entrada_sound.play() # Toca o som de entrada do menu
     
     while True:
@@ -99,11 +104,12 @@ def start():
         relogio.tick(60)
 
 def pedir_nome_e_avancar():
-    """Função que usa Tkinter para pedir o nome e, se conseguir, avança para a tela de instruções."""
+    """Função que Avança para a tela de instruções."""
+
     nome_coletado = None
     
     root = tk.Tk()
-    root.title("Informe seu Nickname")
+    root.title("Informe seu Nome")
     root.withdraw()
 
     largura_janela = 300
@@ -140,36 +146,44 @@ def pedir_nome_e_avancar():
 
 def tela_boas_vindas(nome_jogador):
     """Função que mostra a tela de instruções e boas-vindas."""
+
+    pygame.mixer.music.stop()  # Garante que a música de outras telas pare
+    instrucoes_sound.play()  # Toca o som de entrada do menu
+
     while True:
         mouse_pos = pygame.mouse.get_pos()
         tela.blit(fundoInstrucoes, (0, 0))
 
-        # Textos de boas-vindas e instruções
-        texto_bem_vindo = fonteMenuMaior.render("Bem-vindo", True, preto)
-        rect_bem_vindo = texto_bem_vindo.get_rect(center=(tela.get_width() // 2, 45))
-        
-        texto_nome = fonteMenuMaior.render(f"{nome_jogador}", True, preto)
-        rect_nome = texto_nome.get_rect(centerx=rect_bem_vindo.centerx, top=rect_bem_vindo.bottom + 10)
-        
-        instrucao1 = fonteMenu.render("Use as setas para desviar dos mísseis", True, branco)
-        rect_instrucao1 = instrucao1.get_rect(centerx=rect_nome.centerx, top=rect_nome.bottom + 29)
+        # Movendo os textos um pouco mais para baixo
+        deslocamento = 80  # Ajuste para abaixar tudo
 
-        instrucao2 = fonteMenu.render("Pressione ESPAÇO para pausar o jogo", True, branco)
-        rect_instrucao2 = instrucao2.get_rect(centerx=rect_instrucao1.centerx, top=rect_instrucao1.bottom + 10)
+        texto_bem_vindo = fonteMenuMaior.render("Bem-vindo", True, ciano_konan)
+        rect_bem_vindo = texto_bem_vindo.get_rect(center=(tela.get_width() // 2, tela.get_height() // 3 + deslocamento))
 
+        texto_nome = fonteMenuMaior.render(f"{nome_jogador}", True, ciano_konan)
+        rect_nome = texto_nome.get_rect(center=(tela.get_width() // 2, rect_bem_vindo.bottom + 15))
+
+        instrucao1 = fonteMenu.render("Use as setas para desviar dos mísseis", True, ciano_konan)
+        rect_instrucao1 = instrucao1.get_rect(center=(tela.get_width() // 2, rect_nome.bottom + 30))
+
+        instrucao2 = fonteMenu.render("Pressione ESPAÇO para pausar o jogo", True, ciano_konan)
+        rect_instrucao2 = instrucao2.get_rect(center=(tela.get_width() // 2, rect_instrucao1.bottom + 30))
+
+        # Desenhando textos na tela
         tela.blit(texto_bem_vindo, rect_bem_vindo)
         tela.blit(texto_nome, rect_nome)
         tela.blit(instrucao1, rect_instrucao1)
         tela.blit(instrucao2, rect_instrucao2)
-        
-        # Botão para iniciar o jogo
+
+        # Movendo o botão para abaixo dos textos
         botao_iniciar_rect = pygame.Rect(0, 0, 200, 50)
-        botao_iniciar_rect.center = (tela.get_width() // 2, 245)
-        pygame.draw.rect(tela, roxo_botao, botao_iniciar_rect, border_radius=10)
-        
-        texto_botao = fonteMenu.render("Iniciar Jogo", True, branco)
+        botao_iniciar_rect.center = (tela.get_width() // 2, rect_instrucao2.bottom + 40)
+        pygame.draw.rect(tela, cor_botao, botao_iniciar_rect, border_radius=10)
+
+        texto_botao = fonteMenu.render("Iniciar Jogo", True, ciano_konan)
         tela.blit(texto_botao, texto_botao.get_rect(center=botao_iniciar_rect.center))
-        
+
+        # Lógica de eventos
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
@@ -182,55 +196,4 @@ def tela_boas_vindas(nome_jogador):
         pygame.display.update()
         relogio.tick(60)
 
-def loop_principal_do_jogo(nome_jogador):
-    """Função onde o jogo de desviar dos mísseis acontece."""
-    em_pausa = False
-    posicaoXPersona = 500
-    posicaoYPersona = 500
-    movimentoXPersona = 0
-    posicaoXMissel = 400
-    posicaoYMissel = -240
-    velocidadeMissel = 1
-    pontos = 0
-    
-    # Lógica de som do jogo
-    pygame.mixer.music.play(-1) # Toca a música do jogo em loop
-    
-    while True:
-        # Lógica de eventos do jogo
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            # Seus eventos de KEYDOWN e KEYUP para mover o personagem
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_RIGHT:
-                    movimentoXPersona = 15
-                elif evento.key == pygame.K_LEFT:
-                    movimentoXPersona = -15
-            if evento.type == pygame.KEYUP:
-                if evento.key in [pygame.K_LEFT, pygame.K_RIGHT]:
-                    movimentoXPersona = 0
 
-        # Lógica de atualização de posição, colisão, etc.
-        posicaoXPersona += movimentoXPersona
-        # Aqui vai o resto da sua lógica de jogo que estava faltando:
-        # limites de tela, movimento do míssil, verificação de colisão, etc.
-
-        # Desenho na tela
-        tela.blit(fundoJogo, (0, 0))
-        tela.blit(iron, (posicaoXPersona, posicaoYPersona))
-        tela.blit(missel, (posicaoXMissel, posicaoYMissel))
-        
-        texto_pontos = fonteMenu.render("Pontos: " + str(pontos), True, branco)
-        tela.blit(texto_pontos, (15, 15))
-
-        pygame.display.update()
-        relogio.tick(60)
-
-# (A função 'dead()' não foi fornecida no seu último código, então não a incluí.
-# Se precisar dela, pode colar aqui.)
-
-# --- Ponto de Partida do Programa ---
-# Começa o programa exibindo a tela de menu inicial.
-start()
