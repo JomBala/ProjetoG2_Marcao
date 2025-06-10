@@ -1,36 +1,57 @@
-import os, time
 import json
-from datetime import datetime
+import os
 
+from recursos.utilidades import get_timestamp_formatado
 
-def limpar_tela():
-    os.system("cls")
+def registrar_partida(player_name, pontos):
     
-def aguarde(segundos):
-    time.sleep(segundos)
+    # Registra a pontuação, nome e o timestamp em log.dat.
+
+    timestamp = get_timestamp_formatado()
+    log_entry = {
+        "nome": player_name,
+        "pontos": pontos,
+        "timestamp": timestamp
+    }
     
-def inicializarBancoDeDados():
-    # r - read, w - write, a - append
+    logs = [] 
+    
+    # Verifica se o ficheiro log.dat existe e lê os dados
+    
+    if os.path.exists("log.dat"):
+        try:
+            if os.path.getsize("log.dat") > 0:
+                with open("log.dat", "r", encoding="utf-8") as f:
+                    dados_carregados = json.load(f)
+                    if isinstance(dados_carregados, list):
+                        logs = dados_carregados
+        except (json.JSONDecodeError, FileNotFoundError):
+            print("Arquivo de log corrompido ou não encontrado. Criando um novo.")
+            logs = []
+
+    logs.append(log_entry)
+    
     try:
-        banco = open("log.dat","r")
-    except:
-        print("Banco de Dados Inexistente. Criando...")
-        banco = open("log.dat","w")
+        with open("log.dat", "w", encoding="utf-8") as f:
+            json.dump(logs, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Erro ao escrever no arquivo de log: {e}")
+
+def obter_ultimos_registros(quantidade=5):
     
-def escreverDados(nome, pontos):
-    # INI - inserindo no arquivo
-    banco = open("log.dat","r")
-    dados = banco.read()
-    banco.close()
-    print("dados",type(dados))
-    if dados != "":
-        dadosDict = json.loads(dados)
-    else:
-        dadosDict = {}
-        
-    data_br = datetime.now().strftime("%d/%m/%Y")
-    dadosDict[nome] = (pontos, data_br)
+    #Lê o log e retorna os últimos 'quantidade' de registros, ordenados por pontos.
     
-    banco = open("log.dat","w")
-    banco.write(json.dumps(dadosDict))
-    banco.close()
+    logs = []
+    if os.path.exists("log.dat"):
+        try:
+            if os.path.getsize("log.dat") > 0:
+                with open("log.dat", "r", encoding="utf-8") as f:
+                    dados_carregados = json.load(f)
+                    if isinstance(dados_carregados, list):
+                        logs = dados_carregados
+        except (json.JSONDecodeError, FileNotFoundError):
+            return [] 
+    
+    # Ordena por pontos (maior primeiro) e pega os últimos registros
+    ultimos_scores = sorted(logs, key=lambda x: x.get('pontos', 0), reverse=True)[:quantidade]
+    return ultimos_scores

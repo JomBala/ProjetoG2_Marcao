@@ -3,10 +3,14 @@ import pygame
 import random
 import os
 import tkinter as tk
+import pyttsx3
 from tkinter import messagebox
 import sys
 import json
+import math 
+# --- ALTERAÇÃO 1: Importar as novas funções ---
 from recursos.utilidades import get_timestamp_formatado
+from recursos.funcoes import registrar_partida, obter_ultimos_registros
 
 # --- Classe Principal do Jogo ---
 
@@ -37,6 +41,8 @@ class Game:
         self.tela = pygame.display.set_mode((self.LARGURA_TELA, self.ALTURA_TELA))
         pygame.display.set_caption("Paper Run: Konan Edition")
         self.relogio = pygame.time.Clock()
+        self.engine = pyttsx3.init()
+        self.engine.setProperty('rate', 150)
         
         # --- Carregamento de Assets ---
         self.carregar_assets()
@@ -57,7 +63,8 @@ class Game:
             self.obito_img = pygame.image.load(os.path.join(caminho_recursos, "obito_atacando.png")).convert_alpha()
             self.fogo_img = pygame.image.load(os.path.join(caminho_recursos, "bola_de_fogo.png")).convert_alpha()
             self.shuriken_img = pygame.image.load(os.path.join(caminho_recursos, "ataque_shuriken.png")).convert_alpha()
-            
+            self.sharingan_spritesheet = pygame.image.load(os.path.join(caminho_recursos, "sharingan.png")).convert_alpha()
+
             self.som_entrada = pygame.mixer.Sound(os.path.join(caminho_recursos, "entradasound.mp3"))
             self.som_instrucoes = pygame.mixer.Sound(os.path.join(caminho_recursos, "instrucoes.mp3"))
             self.musica_jogo_path = os.path.join(caminho_recursos, "musicaPrincipal.mp3")
@@ -65,13 +72,20 @@ class Game:
             self.fonteTexto = pygame.font.Font(os.path.join(caminho_recursos, "Audiowide-Regular.ttf"), 16)
             self.fonteMenu = pygame.font.Font(os.path.join(caminho_recursos, "roguehero.ttf"), 20)
             self.fonteMenuMaior = pygame.font.Font(os.path.join(caminho_recursos, "roguehero.ttf"), 35)
-            self.fonte_game_over = pygame.font.Font(None, 74)
+            self.fonte_game_over = pygame.font.Font(os.path.join(caminho_recursos, "roguehero.ttf"), 70)
             self.fonte_placar = pygame.font.Font(None, 28)
 
         except Exception as e:
             print(f"Erro ao carregar um ou mais assets: {e}")
             pygame.quit()
             sys.exit()
+            
+    def falar(self, texto):
+        try:
+            self.engine.say(texto)
+            self.engine.runAndWait()
+        except Exception as e:
+            print(f"Erro ao usar o pyttsx3: {e}")
 
     def show_start_screen(self):
         
@@ -168,73 +182,41 @@ class Game:
             pygame.display.update()
             self.relogio.tick(self.FPS)
     
-    def registrar_partida(self, player_name, pontos):
-        timestamp = get_timestamp_formatado()
-        log_entry = {
-            "nome": player_name,
-            "pontos": pontos,
-            "timestamp": timestamp
-        }
-        
-        logs = [] 
-        
-        if os.path.exists("log.dat"):
-            try:
-                with open("log.dat", "r", encoding="utf-8") as f:
-                    dados_carregados = json.load(f)
-                    if isinstance(dados_carregados, list):
-                        logs = dados_carregados
-            except (json.JSONDecodeError, FileNotFoundError):
-                print("Arquivo de log corrompido ou não encontrado. Criando um novo.")
-                logs = []
-
-        
-        logs.append(log_entry)
-        
-        
-        try:
-            with open("log.dat", "w", encoding="utf-8") as f:
-                json.dump(logs, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Erro ao escrever no arquivo de log: {e}")
+    # --- ALTERAÇÃO 2: Remover o método registrar_partida daqui ---
+    # def registrar_partida(self, player_name, pontos): -> ESTA FUNÇÃO FOI MOVIDA PARA funcoes.py
 
     def show_pause_overlay(self):
         overlay = pygame.Surface((self.LARGURA_TELA, self.ALTURA_TELA), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 150))
         self.tela.blit(overlay, (0, 0))
         
-        texto_pausa = self.fonte_game_over.render("PAUSADO", True, self.BRANCO)
+        texto_pausa = self.fonte_game_over.render("PAUSE", True, self.BRANCO)
         rect_pausa = texto_pausa.get_rect(center=(self.LARGURA_TELA / 2, self.ALTURA_TELA / 2))
         self.tela.blit(texto_pausa, rect_pausa)
     
     def show_game_over_screen(self):
+        self.falar("Não existe redenção, só existe o fim")
         
-        ultimos_scores = []
-        try:
-            with open("log.dat", "r", encoding="utf-8") as f:
-                logs = json.load(f)
-                if isinstance(logs, list):
-                    ultimos_scores = sorted(logs, key=lambda x: x.get('pontos', 0), reverse=True)[:5]
-        except (FileNotFoundError, json.JSONDecodeError):
-            print("Arquivo de log não encontrado ou vazio.")
+        # --- ALTERAÇÃO 3: Chamar a função importada para obter os scores ---
+        ultimos_scores = obter_ultimos_registros(5)
         
         while True:
             mouse_pos = pygame.mouse.get_pos()
             
             self.tela.blit(self.fundoDead, (0, 0))
             
-            texto_voce_morreu = self.fonte_game_over.render("VOCÊ MORREU", True, self.BRANCO)
+            texto_voce_morreu = self.fonte_game_over.render("OBITO TE DERROTOU", True, self.NEON)
             rect_voce_morreu = texto_voce_morreu.get_rect(center=(self.LARGURA_TELA / 2, self.ALTURA_TELA / 4))
             self.tela.blit(texto_voce_morreu, rect_voce_morreu)
 
-            texto_titulo_scores = self.fonteMenuMaior.render("Melhores Pontuações:", True, self.BRANCO)
+            texto_titulo_scores = self.fonteMenuMaior.render("Melhores Pontuações:", True, self.CIANO_KONAN)
             rect_titulo_scores = texto_titulo_scores.get_rect(centerx=self.LARGURA_TELA / 2, top=rect_voce_morreu.bottom + 50)
             self.tela.blit(texto_titulo_scores, rect_titulo_scores)
 
             pos_y_score = rect_titulo_scores.bottom + 20
             for i, entrada in enumerate(ultimos_scores):
                 texto_score = f"{i+1}. {entrada.get('nome','?')} - {entrada.get('pontos','?')} pts ({entrada.get('timestamp','?')})"
-                score_surface = self.fonteMenu.render(texto_score, True, self.BRANCO)
+                score_surface = self.fonteMenu.render(texto_score, True, self.CIANO_KONAN)
                 score_rect = score_surface.get_rect(centerx=self.LARGURA_TELA / 2, top=pos_y_score)
                 self.tela.blit(score_surface, score_rect)
                 pos_y_score += 35
@@ -265,6 +247,10 @@ class Game:
         konan = Player(self.konan_img, self.ALTURA_TELA)
         
         obito = Enemy(self.obito_img, self.fogo_img, self.shuriken_img, self.LARGURA_TELA, self.ALTURA_TELA)
+        
+        posicao_sharingan = (self.LARGURA_TELA - 70, 70)
+        sharingan_decorativo = SharinganAnimado(posicao_sharingan, self.sharingan_spritesheet)
+        todos_sprites.add(sharingan_decorativo)
         
         todos_sprites.add(konan, obito)
         chuva = [GotaDeChuva(self.LARGURA_TELA, self.ALTURA_TELA) for _ in range(200)]
@@ -304,28 +290,22 @@ class Game:
                 todos_sprites.update()
                 pontos += 1
 
-                # --- ALTERAÇÃO 2: Lógica para aumentar a dificuldade ---
                 if (pontos // 10) >= proximo_nivel_pontos:
-                    # Reduz o intervalo de tiro, tornando os ataques mais rápidos
                     intervalo_tiro_atual = int(intervalo_tiro_atual * 0.9)
                     
-                    # Define um limite para não ficar impossível
                     if intervalo_tiro_atual < 200:
                         intervalo_tiro_atual = 200
                     
-                    # Para o timer antigo e inicia um novo com o tempo atualizado
                     pygame.time.set_timer(EVENTO_TIRO_OBITO, 0)
                     pygame.time.set_timer(EVENTO_TIRO_OBITO, intervalo_tiro_atual)
 
-                    # Define a próxima meta de pontos
                     proximo_nivel_pontos += 100
 
-                    # Um print no console para você saber que funcionou
-                    print(f"DIFICULDADE AUMENTOU! Novo intervalo de tiro: {intervalo_tiro_atual}ms")
 
                 if pygame.sprite.spritecollide(konan, projeteis, True):
                     pygame.mixer.music.stop()
-                    self.registrar_partida(player_name, pontos // 10)
+                    # --- ALTERAÇÃO 4: Chamar a função importada ---
+                    registrar_partida(player_name, pontos // 10)
                     self.show_game_over_screen()
                     return
 
@@ -513,6 +493,37 @@ class GotaDeChuva:
 
     def desenhar(self, surface, color):
         pygame.draw.line(surface, color, (self.x, self.y), (self.x, self.y + self.comprimento), 2)
+
+class SharinganAnimado(pygame.sprite.Sprite):
+    def __init__(self, pos, spritesheet_img):
+        super().__init__()
+        self.frames = []
+        
+        largura_total = spritesheet_img.get_width()
+        altura_total = spritesheet_img.get_height()
+        largura_frame = largura_total // 3
+        
+        for i in range(3):
+            frame = spritesheet_img.subsurface((i * largura_frame, 0, largura_frame, altura_total))
+            frame.set_colorkey((0, 0, 0))
+            frame_redimensionado = pygame.transform.scale(frame, (80, 80))
+            self.frames.append(frame_redimensionado)
+            
+        self.frame_atual = 0
+        self.image = self.frames[self.frame_atual]
+        self.rect = self.image.get_rect(center=pos)
+        
+        self.ultimo_update = pygame.time.get_ticks()
+        self.velocidade_anim = 80
+
+    def update(self):
+        agora = pygame.time.get_ticks()
+        if agora - self.ultimo_update > self.velocidade_anim:
+            self.ultimo_update = agora
+            self.frame_atual = (self.frame_atual + 1) % len(self.frames)
+            posicao_antiga = self.rect.center
+            self.image = self.frames[self.frame_atual]
+            self.rect = self.image.get_rect(center=posicao_antiga)
 
 
 if __name__ == "__main__":
