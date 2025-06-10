@@ -6,7 +6,6 @@ import tkinter as tk
 from tkinter import messagebox
 import sys
 import json
-# Importa a nova função que vamos criar
 from recursos.utilidades import get_timestamp_formatado
 
 # --- Classe Principal do Jogo ---
@@ -33,6 +32,7 @@ class Game:
         self.AZUL_CHUVA = (14, 34, 47)
         self.NEON = (0, 255, 255)
         
+        
         # --- Setup da Tela ---
         self.tela = pygame.display.set_mode((self.LARGURA_TELA, self.ALTURA_TELA))
         pygame.display.set_caption("Paper Run: Konan Edition")
@@ -56,6 +56,7 @@ class Game:
             self.konan_img = pygame.image.load(os.path.join(caminho_recursos, "konan.png")).convert_alpha()
             self.obito_img = pygame.image.load(os.path.join(caminho_recursos, "obito_atacando.png")).convert_alpha()
             self.fogo_img = pygame.image.load(os.path.join(caminho_recursos, "bola_de_fogo.png")).convert_alpha()
+            self.shuriken_img = pygame.image.load(os.path.join(caminho_recursos, "ataque_shuriken.png")).convert_alpha()
             
             self.som_entrada = pygame.mixer.Sound(os.path.join(caminho_recursos, "entradasound.mp3"))
             self.som_instrucoes = pygame.mixer.Sound(os.path.join(caminho_recursos, "instrucoes.mp3"))
@@ -102,7 +103,7 @@ class Game:
             self.relogio.tick(self.FPS)
 
     def get_player_name(self):
-        # (Esta função permanece exatamente como a sua versão, sem alterações)
+
         nome_coletado = None
         root = tk.Tk()
         root.title("Informe seu Nome")
@@ -133,7 +134,7 @@ class Game:
             self.show_start_screen()
 
     def show_instructions_screen(self, player_name):
-        # (Esta função permanece exatamente como a sua versão, sem alterações)
+        
         self.som_instrucoes.play()
         while True:
             mouse_pos = pygame.mouse.get_pos()
@@ -142,9 +143,9 @@ class Game:
             rect_bem_vindo = texto_bem_vindo.get_rect(center=(self.LARGURA_TELA // 2, 300))
             texto_nome = self.fonteMenuMaior.render(f"{player_name}", True, self.CIANO_KONAN)
             rect_nome = texto_nome.get_rect(centerx=rect_bem_vindo.centerx, top=rect_bem_vindo.bottom + 15)
-            instrucao1 = self.fonteMenu.render("Use as setas para desviar dos mísseis", True, self.CIANO_KONAN)
+            instrucao1 = self.fonteMenu.render("Use as SETAS para desviar dos ATAQUES do Obito", True, self.CIANO_KONAN)
             rect_instrucao1 = instrucao1.get_rect(centerx=rect_nome.centerx, top=rect_nome.bottom + 40)
-            instrucao2 = self.fonteMenu.render("Pressione ESPAÇO para pausar o jogo", True, self.CIANO_KONAN)
+            instrucao2 = self.fonteMenu.render("Pressione ESPACO para pausar o jogo", True, self.CIANO_KONAN)
             rect_instrucao2 = instrucao2.get_rect(centerx=rect_instrucao1.centerx, top=rect_instrucao1.bottom + 20)
             self.tela.blit(texto_bem_vindo, rect_bem_vindo)
             self.tela.blit(texto_nome, rect_nome)
@@ -167,14 +168,7 @@ class Game:
             pygame.display.update()
             self.relogio.tick(self.FPS)
     
-    # --- INÍCIO DAS NOVAS FUNCIONALIDADES ---
-
-    # Dentro da sua classe Game, substitua o método antigo por este:
-
     def registrar_partida(self, player_name, pontos):
-        """
-        Registra a pontuação, nome e o timestamp em log.dat (VERSÃO CORRIGIDA E SEGURA).
-        """
         timestamp = get_timestamp_formatado()
         log_entry = {
             "nome": player_name,
@@ -182,25 +176,22 @@ class Game:
             "timestamp": timestamp
         }
         
-        logs = [] # Começa com uma lista vazia
+        logs = [] 
         
-        # Tenta ler o arquivo de log existente
         if os.path.exists("log.dat"):
             try:
                 with open("log.dat", "r", encoding="utf-8") as f:
                     dados_carregados = json.load(f)
-                    # VERIFICAÇÃO DE SEGURANÇA: Garante que os dados são uma lista
                     if isinstance(dados_carregados, list):
                         logs = dados_carregados
             except (json.JSONDecodeError, FileNotFoundError):
-                # Se o arquivo estiver corrompido ou não for encontrado, ignora e usa a lista vazia
                 print("Arquivo de log corrompido ou não encontrado. Criando um novo.")
                 logs = []
 
-        # Adiciona a nova entrada à lista
+        
         logs.append(log_entry)
         
-        # Salva a lista inteira de volta no arquivo
+        
         try:
             with open("log.dat", "w", encoding="utf-8") as f:
                 json.dump(logs, f, indent=4, ensure_ascii=False)
@@ -208,7 +199,6 @@ class Game:
             print(f"Erro ao escrever no arquivo de log: {e}")
 
     def show_pause_overlay(self):
-        """Desenha uma camada escura e o texto de PAUSADO."""
         overlay = pygame.Surface((self.LARGURA_TELA, self.ALTURA_TELA), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 150))
         self.tela.blit(overlay, (0, 0))
@@ -218,53 +208,78 @@ class Game:
         self.tela.blit(texto_pausa, rect_pausa)
     
     def show_game_over_screen(self):
-        """TELA DE GAME OVER ATUALIZADA: Mostra 'Você Morreu' e os 5 últimos scores."""
+        
         ultimos_scores = []
         try:
             with open("log.dat", "r", encoding="utf-8") as f:
                 logs = json.load(f)
-                ultimos_scores = sorted(logs, key=lambda x: x.get('pontos', 0), reverse=True)[:5]
+                if isinstance(logs, list):
+                    ultimos_scores = sorted(logs, key=lambda x: x.get('pontos', 0), reverse=True)[:5]
         except (FileNotFoundError, json.JSONDecodeError):
             print("Arquivo de log não encontrado ou vazio.")
         
-        self.tela.blit(self.fundoDead, (0, 0))
-        
-        texto_voce_morreu = self.fonte_game_over.render("VOCÊ MORREU", True, self.BRANCO)
-        rect_voce_morreu = texto_voce_morreu.get_rect(center=(self.LARGURA_TELA / 2, self.ALTURA_TELA / 4))
-        self.tela.blit(texto_voce_morreu, rect_voce_morreu)
+        while True:
+            mouse_pos = pygame.mouse.get_pos()
+            
+            self.tela.blit(self.fundoDead, (0, 0))
+            
+            texto_voce_morreu = self.fonte_game_over.render("VOCÊ MORREU", True, self.BRANCO)
+            rect_voce_morreu = texto_voce_morreu.get_rect(center=(self.LARGURA_TELA / 2, self.ALTURA_TELA / 4))
+            self.tela.blit(texto_voce_morreu, rect_voce_morreu)
 
-        texto_titulo_scores = self.fonteMenuMaior.render("Melhores Pontuações:", True, self.BRANCO)
-        rect_titulo_scores = texto_titulo_scores.get_rect(centerx=self.LARGURA_TELA / 2, top=rect_voce_morreu.bottom + 50)
-        self.tela.blit(texto_titulo_scores, rect_titulo_scores)
+            texto_titulo_scores = self.fonteMenuMaior.render("Melhores Pontuações:", True, self.BRANCO)
+            rect_titulo_scores = texto_titulo_scores.get_rect(centerx=self.LARGURA_TELA / 2, top=rect_voce_morreu.bottom + 50)
+            self.tela.blit(texto_titulo_scores, rect_titulo_scores)
 
-        pos_y_score = rect_titulo_scores.bottom + 20
-        for i, entrada in enumerate(ultimos_scores):
-            texto_score = f"{i+1}. {entrada['nome']} - {entrada['pontos']} pontos ({entrada['timestamp']})"
-            score_surface = self.fonteMenu.render(texto_score, True, self.BRANCO)
-            score_rect = score_surface.get_rect(centerx=self.LARGURA_TELA / 2, top=pos_y_score)
-            self.tela.blit(score_surface, score_rect)
-            pos_y_score += 35
+            pos_y_score = rect_titulo_scores.bottom + 20
+            for i, entrada in enumerate(ultimos_scores):
+                texto_score = f"{i+1}. {entrada.get('nome','?')} - {entrada.get('pontos','?')} pts ({entrada.get('timestamp','?')})"
+                score_surface = self.fonteMenu.render(texto_score, True, self.BRANCO)
+                score_rect = score_surface.get_rect(centerx=self.LARGURA_TELA / 2, top=pos_y_score)
+                self.tela.blit(score_surface, score_rect)
+                pos_y_score += 35
 
-        pygame.display.flip()
-        pygame.time.wait(5000)
-        self.show_start_screen()
+            botao_rect = pygame.Rect(0, 0, 250, 50)
+            botao_rect.center = (self.LARGURA_TELA // 2, self.ALTURA_TELA - 100)
+            pygame.draw.rect(self.tela, self.COR_BOTAO, botao_rect, border_radius=10)
+            
+            texto_botao = self.fonteMenu.render("Jogar Novamente", True, self.NEON)
+            self.tela.blit(texto_botao, texto_botao.get_rect(center=botao_rect.center))
+
+            for evento in pygame.event.get():
+                if evento.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if evento.type == pygame.MOUSEBUTTONDOWN:
+                    if botao_rect.collidepoint(mouse_pos):
+                        self.show_start_screen()
+                        return
+
+            pygame.display.update()
+            self.relogio.tick(self.FPS)
+
 
     def run_game_loop(self, player_name):
-        """O loop principal onde o jogo acontece, agora com PAUSA."""
         todos_sprites = pygame.sprite.Group()
         projeteis = pygame.sprite.Group()
         konan = Player(self.konan_img, self.ALTURA_TELA)
-        obito = Enemy(self.obito_img, self.LARGURA_TELA, self.ALTURA_TELA)
+        
+        obito = Enemy(self.obito_img, self.fogo_img, self.shuriken_img, self.LARGURA_TELA, self.ALTURA_TELA)
+        
         todos_sprites.add(konan, obito)
         chuva = [GotaDeChuva(self.LARGURA_TELA, self.ALTURA_TELA) for _ in range(200)]
         EVENTO_TIRO_OBITO = pygame.USEREVENT + 1
-        pygame.time.set_timer(EVENTO_TIRO_OBITO, 700)
+        
+        intervalo_tiro_atual = 700  
+        proximo_nivel_pontos = 100  
+        
+        pygame.time.set_timer(EVENTO_TIRO_OBITO, intervalo_tiro_atual) 
         
         pygame.mixer.music.load(self.musica_jogo_path)
         pygame.mixer.music.play(-1)
         
         pontos = 0
-        pausado = False # Variável para controlar o estado de pausa
+        pausado = False
         
         while True:
             self.relogio.tick(self.FPS)
@@ -273,11 +288,10 @@ class Game:
                 if evento.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                # Só processa tiros se o jogo não estiver pausado
-                if evento.type == EVENTO_TIRO_OBITO and not pausado:
-                    obito.atirar(todos_sprites, projeteis, self.fogo_img)
                 
-                # --- LÓGICA DE PAUSA ---
+                if evento.type == EVENTO_TIRO_OBITO and not pausado:
+                    obito.atirar(todos_sprites, projeteis)
+                
                 if evento.type == pygame.KEYDOWN:
                     if evento.key == pygame.K_SPACE:
                         pausado = not pausado
@@ -286,17 +300,35 @@ class Game:
                         else:
                             pygame.mixer.music.unpause()
 
-            # --- Lógica do Jogo (Só roda se NÃO estiver pausado) ---
             if not pausado:
                 todos_sprites.update()
                 pontos += 1
+
+                # --- ALTERAÇÃO 2: Lógica para aumentar a dificuldade ---
+                if (pontos // 10) >= proximo_nivel_pontos:
+                    # Reduz o intervalo de tiro, tornando os ataques mais rápidos
+                    intervalo_tiro_atual = int(intervalo_tiro_atual * 0.9)
+                    
+                    # Define um limite para não ficar impossível
+                    if intervalo_tiro_atual < 200:
+                        intervalo_tiro_atual = 200
+                    
+                    # Para o timer antigo e inicia um novo com o tempo atualizado
+                    pygame.time.set_timer(EVENTO_TIRO_OBITO, 0)
+                    pygame.time.set_timer(EVENTO_TIRO_OBITO, intervalo_tiro_atual)
+
+                    # Define a próxima meta de pontos
+                    proximo_nivel_pontos += 100
+
+                    # Um print no console para você saber que funcionou
+                    print(f"DIFICULDADE AUMENTOU! Novo intervalo de tiro: {intervalo_tiro_atual}ms")
+
                 if pygame.sprite.spritecollide(konan, projeteis, True):
                     pygame.mixer.music.stop()
                     self.registrar_partida(player_name, pontos // 10)
                     self.show_game_over_screen()
                     return
 
-            # --- Desenho na Tela ---
             self.tela.blit(self.fundoJogo, (0, 0))
             for gota in chuva:
                 if not pausado: gota.cair()
@@ -308,13 +340,11 @@ class Game:
             texto_aviso_pausa = self.fonteTexto.render("Pressione ESPACO para pausar", True, self.BRANCO)
             self.tela.blit(texto_aviso_pausa, (self.LARGURA_TELA - texto_aviso_pausa.get_width() - 15, 15))
             
-            # Se o jogo estiver pausado, desenha a tela de pausa por cima de tudo
             if pausado:
                 self.show_pause_overlay()
 
             pygame.display.flip()
             
-# --- Classes de Sprites do Jogo (sem alterações) ---
 class Player(pygame.sprite.Sprite):
     def __init__(self, player_img, screen_height):
         super().__init__()
@@ -333,79 +363,95 @@ class Player(pygame.sprite.Sprite):
         if self.rect.bottom > self.screen_height: self.rect.bottom = self.screen_height
 
 class Enemy(pygame.sprite.Sprite):
-    """Classe para o Obito (inimigo), com animação de um sprite sheet em grade."""
-    def __init__(self, spritesheet_img, screen_width, screen_height):
+    def __init__(self, spritesheet_img, fogo_img, shuriken_img, screen_width, screen_height):
         super().__init__()
-
-        # --- Atributos de Animação ---
-        self.frames = []
-        self.current_frame = 0
-        self.last_update_time = pygame.time.get_ticks()
-        self.animation_speed = 100 # Velocidade da animação (ajuste se quiser)
-
-        # Carrega os frames do Sprite Sheet
-        self.carregar_frames(spritesheet_img)
-
-        # Define a imagem inicial e o retângulo
-        self.image = self.frames[self.current_frame]
-        self.rect = self.image.get_rect()
-
-        # Guarda as dimensões da tela
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self.fogo_img = fogo_img
+        self.shuriken_img = shuriken_img
 
-        # Posição inicial do Obito
-        self.rect.centerx = self.screen_width - 100
-        self.rect.centery = random.randint(100, self.screen_height - 100)
+        self.frames = []; self.current_frame = 0
+        self.last_update_time = pygame.time.get_ticks(); self.animation_speed = 100
+        self.carregar_frames(spritesheet_img)
+        self.image = self.frames[self.current_frame]; self.rect = self.image.get_rect()
+        self.reposicionar()
 
     def carregar_frames(self, spritesheet_img):
-        """
-        Recorta o sprite sheet do Obito em formato de GRADE (várias linhas e colunas).
-        """
-        # --- CONFIGURAÇÃO EXATA PARA O SEU SPRITE SHEET DO OBITO ---
-        NUM_COLUNAS = 5
-        NUM_LINHAS = 3
-
-        # O código calcula a largura e altura de cada quadro automaticamente
+        NUM_COLUNAS, NUM_LINHAS = 5, 3
         FRAME_LARGURA = spritesheet_img.get_width() // NUM_COLUNAS
         FRAME_ALTURA = spritesheet_img.get_height() // NUM_LINHAS
-
-        # O fundo da sua imagem é preto, então vamos torná-lo transparente
-        COR_DO_FUNDO = (0, 0, 0)
-
-        # Loop aninhado para percorrer linhas e colunas
         for y in range(NUM_LINHAS):
             for x in range(NUM_COLUNAS):
-                rect_corte = pygame.Rect(x * FRAME_LARGURA, y * FRAME_ALTURA, FRAME_LARGURA, FRAME_ALTURA)
-                frame = spritesheet_img.subsurface(rect_corte)
-                frame.set_colorkey(COR_DO_FUNDO)
-                
-                # Redimensiona para o tamanho final do Obito no jogo (ajuste se precisar)
-                frame_redimensionada = pygame.transform.scale(frame, (294, 98))
-                self.frames.append(frame_redimensionada)
+                frame = spritesheet_img.subsurface(pygame.Rect(x * FRAME_LARGURA, y * FRAME_ALTURA, FRAME_LARGURA, FRAME_ALTURA))
+                frame.set_colorkey((0, 0, 0))
+                self.frames.append(pygame.transform.scale(frame, (200, 100)))
 
     def animar(self):
-        """Controla a troca de quadros da animação de ataque."""
         agora = pygame.time.get_ticks()
         if agora - self.last_update_time > self.animation_speed:
             self.last_update_time = agora
             self.current_frame = (self.current_frame + 1) % len(self.frames)
-            
+            center_antigo = self.rect.center
+            self.image = self.frames[self.current_frame]
+            self.rect = self.image.get_rect(center=center_antigo)
+
+    def reposicionar(self):
+        self.rect.centerx = self.screen_width - 100
+        self.rect.centery = random.randint(45, self.screen_height - 45)
+
+    def update(self):
+        self.animar()
+
+    def atirar(self, all_sprites, projectiles_group):
+        self.reposicionar()
+        tipo_ataque = random.choice(['fogo', 'shuriken'])
+
+        if tipo_ataque == 'fogo':
+            novo_projetil = Projectile(self.rect.midleft, self.fogo_img)
+        else:
+            novo_projetil = ShurikenInimigo(self.rect.midleft, self.shuriken_img)
+
+        all_sprites.add(novo_projetil)
+        projectiles_group.add(novo_projetil)
+
+
+class ShurikenInimigo(pygame.sprite.Sprite):
+    def __init__(self, pos, spritesheet_img):
+        super().__init__()
+        self.frames = []
+        self.current_frame = 0
+        self.last_update_time = pygame.time.get_ticks()
+        self.animation_speed = 75
+
+        self.carregar_frames(spritesheet_img)
+        self.image = self.frames[self.current_frame]
+        self.rect = self.image.get_rect(center=pos)
+        self.velocidade_x = -12
+
+    def carregar_frames(self, spritesheet_img):
+        NUMERO_DE_FRAMES = 3
+        FRAME_LARGURA = spritesheet_img.get_width() // NUMERO_DE_FRAMES
+        FRAME_ALTURA = spritesheet_img.get_height()
+
+        for i in range(NUMERO_DE_FRAMES):
+            frame = spritesheet_img.subsurface(pygame.Rect(i * FRAME_LARGURA, 0, FRAME_LARGURA, FRAME_ALTURA))
+            frame_redimensionada = pygame.transform.scale(frame, (40, 40))
+            self.frames.append(frame_redimensionada)
+
+    def animar(self):
+        agora = pygame.time.get_ticks()
+        if agora - self.last_update_time > self.animation_speed:
+            self.last_update_time = agora
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
             center_antigo = self.rect.center
             self.image = self.frames[self.current_frame]
             self.rect = self.image.get_rect(center=center_antigo)
 
     def update(self):
-        """Atualiza a animação do Obito a cada frame."""
         self.animar()
-
-    def atirar(self, all_sprites, projectiles_group, projectile_spritesheet):
-        """Muda de posição e cria uma bola de fogo."""
-        self.rect.centery = random.randint(100, self.screen_height - 100)
-        # Passa a spritesheet da bola de fogo para o projétil
-        bola_de_fogo = Projectile(self.rect.center, projectile_spritesheet)
-        all_sprites.add(bola_de_fogo)
-        projectiles_group.add(bola_de_fogo)
+        self.rect.x += self.velocidade_x
+        if self.rect.right < 0:
+            self.kill()
 
 class Projectile(pygame.sprite.Sprite):
     def __init__(self, pos, bola_de_fogo_png):
@@ -421,31 +467,19 @@ class Projectile(pygame.sprite.Sprite):
         self.velocidade_x = -10 
 
     def carregar_frames(self, spritesheet_img):
-        """Recorta o sprite sheet da bola de fogo."""
         
-        # --- CONFIGURAÇÃO PARA O SEU SPRITE SHEET DA BOLA DE FOGO ---
         NUMERO_DE_FRAMES = 5
-        FRAME_LARGURA = 220  # (largura total) / 5 (frames)
-        FRAME_ALTURA = 114  # Altura total da imagem
-
-        # IMPORTANTE: Se o fundo do seu sprite sheet tiver uma cor sólida,
-        # coloque o valor RGB exato dela aqui. Se já for transparente, não importa.
-        COR_DO_FUNDO = (0, 0, 0) # Exemplo: preto
+        FRAME_LARGURA = 220
+        FRAME_ALTURA = 114
+        COR_DO_FUNDO = (0, 0, 0) 
 
         for i in range(NUMERO_DE_FRAMES):
-            # Recorta o quadro da imagem principal
             frame = spritesheet_img.subsurface(pygame.Rect(i * FRAME_LARGURA, 0, FRAME_LARGURA, FRAME_ALTURA))
-            
-            # Torna a cor de fundo transparente
             frame.set_colorkey(COR_DO_FUNDO)
-            
-            # Redimensiona o quadro para o tamanho final que ele terá no jogo
-            # Ajuste (60, 60) para o tamanho que você preferir!
             frame_redimensionada = pygame.transform.scale(frame, (80, 42))
             self.frames.append(frame_redimensionada)
 
     def animar(self):
-        """Controla a troca de quadros para criar a animação."""
         agora = pygame.time.get_ticks()
         if agora - self.last_update_time > self.animation_speed:
             self.last_update_time = agora
@@ -456,7 +490,6 @@ class Projectile(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(center=center_antigo)
 
     def update(self):
-        """Atualiza a posição e a animação da bola de fogo."""
         self.animar()
         self.rect.x += self.velocidade_x
         
@@ -482,7 +515,6 @@ class GotaDeChuva:
         pygame.draw.line(surface, color, (self.x, self.y), (self.x, self.y + self.comprimento), 2)
 
 
-# --- Ponto de Partida do Programa ---
 if __name__ == "__main__":
     jogo = Game()
     jogo.show_start_screen()
