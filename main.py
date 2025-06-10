@@ -24,12 +24,12 @@ class Game:
         self.ALTURA_TELA = 700
         self.FPS = 60
 
-        # --- SUAS CORES PERSONALIZADAS (MANTIDAS) ---
+        # --- CORES PERSONALIZADAS ---
         self.BRANCO = (255, 255, 255)
         self.PRETO = (0, 0, 0)
         self.CIANO_KONAN = (210, 239, 246)
         self.AZUL_ESCURO = (8, 39, 76)
-        self.COR_BOTAO = (28, 63, 90) # Renomeei 'cor_botao' para ser mais claro
+        self.COR_BOTAO = (28, 63, 90) 
         self.AZUL_CHUVA = (14, 34, 47)
         self.NEON = (0, 255, 255)
         
@@ -51,10 +51,10 @@ class Game:
             self.fundoStart = pygame.image.load(os.path.join(caminho_recursos, "fundoStart.png"))
             self.fundoJogo = pygame.image.load(os.path.join(caminho_recursos, "fundoJogo.png"))
             self.fundoInstrucoes = pygame.image.load(os.path.join(caminho_recursos, "instrucoes.png"))
-            self.fundoDead = pygame.image.load(os.path.join(caminho_recursos, "fundoDead.jpg"))
+            self.fundoDead = pygame.image.load(os.path.join(caminho_recursos, "fundoDead.png"))
             
-            self.konan_img = pygame.image.load(os.path.join(caminho_recursos, "konan.gif")).convert_alpha()
-            self.obito_img = pygame.image.load(os.path.join(caminho_recursos, "obito_atacando.gif")).convert_alpha()
+            self.konan_img = pygame.image.load(os.path.join(caminho_recursos, "konan.png")).convert_alpha()
+            self.obito_img = pygame.image.load(os.path.join(caminho_recursos, "obito_atacando.png")).convert_alpha()
             self.fogo_img = pygame.image.load(os.path.join(caminho_recursos, "bola_de_fogo.png")).convert_alpha()
             
             self.som_entrada = pygame.mixer.Sound(os.path.join(caminho_recursos, "entradasound.mp3"))
@@ -73,7 +73,7 @@ class Game:
             sys.exit()
 
     def show_start_screen(self):
-        # (Esta função permanece exatamente como a sua versão, sem alterações)
+        
         pygame.mixer.music.stop() 
         self.som_entrada.play(-1)
         while True:
@@ -333,18 +333,77 @@ class Player(pygame.sprite.Sprite):
         if self.rect.bottom > self.screen_height: self.rect.bottom = self.screen_height
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, enemy_img, screen_width, screen_height):
+    """Classe para o Obito (inimigo), com animação de um sprite sheet em grade."""
+    def __init__(self, spritesheet_img, screen_width, screen_height):
         super().__init__()
-        self.image = pygame.transform.scale(enemy_img, (70, 90))
+
+        # --- Atributos de Animação ---
+        self.frames = []
+        self.current_frame = 0
+        self.last_update_time = pygame.time.get_ticks()
+        self.animation_speed = 100 # Velocidade da animação (ajuste se quiser)
+
+        # Carrega os frames do Sprite Sheet
+        self.carregar_frames(spritesheet_img)
+
+        # Define a imagem inicial e o retângulo
+        self.image = self.frames[self.current_frame]
         self.rect = self.image.get_rect()
+
+        # Guarda as dimensões da tela
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.rect.centerx = self.screen_width - 100
-        self.rect.centery = random.randint(50, self.screen_height - 50)
 
-    def atirar(self, all_sprites, projectiles_group, projectile_img):
-        self.rect.centery = random.randint(50, self.screen_height - 50)
-        bola_de_fogo = Projectile(self.rect.center, projectile_img)
+        # Posição inicial do Obito
+        self.rect.centerx = self.screen_width - 100
+        self.rect.centery = random.randint(100, self.screen_height - 100)
+
+    def carregar_frames(self, spritesheet_img):
+        """
+        Recorta o sprite sheet do Obito em formato de GRADE (várias linhas e colunas).
+        """
+        # --- CONFIGURAÇÃO EXATA PARA O SEU SPRITE SHEET DO OBITO ---
+        NUM_COLUNAS = 5
+        NUM_LINHAS = 3
+
+        # O código calcula a largura e altura de cada quadro automaticamente
+        FRAME_LARGURA = spritesheet_img.get_width() // NUM_COLUNAS
+        FRAME_ALTURA = spritesheet_img.get_height() // NUM_LINHAS
+
+        # O fundo da sua imagem é preto, então vamos torná-lo transparente
+        COR_DO_FUNDO = (0, 0, 0)
+
+        # Loop aninhado para percorrer linhas e colunas
+        for y in range(NUM_LINHAS):
+            for x in range(NUM_COLUNAS):
+                rect_corte = pygame.Rect(x * FRAME_LARGURA, y * FRAME_ALTURA, FRAME_LARGURA, FRAME_ALTURA)
+                frame = spritesheet_img.subsurface(rect_corte)
+                frame.set_colorkey(COR_DO_FUNDO)
+                
+                # Redimensiona para o tamanho final do Obito no jogo (ajuste se precisar)
+                frame_redimensionada = pygame.transform.scale(frame, (294, 98))
+                self.frames.append(frame_redimensionada)
+
+    def animar(self):
+        """Controla a troca de quadros da animação de ataque."""
+        agora = pygame.time.get_ticks()
+        if agora - self.last_update_time > self.animation_speed:
+            self.last_update_time = agora
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            
+            center_antigo = self.rect.center
+            self.image = self.frames[self.current_frame]
+            self.rect = self.image.get_rect(center=center_antigo)
+
+    def update(self):
+        """Atualiza a animação do Obito a cada frame."""
+        self.animar()
+
+    def atirar(self, all_sprites, projectiles_group, projectile_spritesheet):
+        """Muda de posição e cria uma bola de fogo."""
+        self.rect.centery = random.randint(100, self.screen_height - 100)
+        # Passa a spritesheet da bola de fogo para o projétil
+        bola_de_fogo = Projectile(self.rect.center, projectile_spritesheet)
         all_sprites.add(bola_de_fogo)
         projectiles_group.add(bola_de_fogo)
 
