@@ -1,15 +1,24 @@
-# pip install cx_freeze
 import cx_Freeze
-executaveis = [ 
-               cx_Freeze.Executable(script="feito.py", icon="assets/icone.ico") ]
+import sys
+import aifc  
+
+executaveis = [
+    cx_Freeze.Executable(
+        script="main.py",
+        icon="recursos/assets/icone.ico",
+        target_name="PaperRun.exe"
+    )
+]
+
 cx_Freeze.setup(
-    name = "Paper Run: Konan Edition",
+    name="Paper Run: Konan Edition",
+    version="1.0",
     options={
-        "build_exe":{
-            "packages":["pygame"],
-            "include_files":["assets"]
+        "build_exe": {
+            "packages": ["pygame", "tkinter", "pyttsx3", "speech_recognition"],
+            "includes": ["aifc"],
+            "include_files": [("recursos", "recursos"), "log.dat"]
         }
-    }, executables = executaveis
+    },
+    executables=executaveis
 )
-
-

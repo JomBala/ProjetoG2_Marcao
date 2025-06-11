@@ -50,7 +50,7 @@ class Game:
         # --- Carrega todas as imagens, fontes e sons em um só lugar ---
         try:
             caminho_recursos = "Recursos/assets/"
-            self.icone = pygame.image.load(os.path.join(caminho_recursos, "icone.png"))
+            self.icone = pygame.image.load(os.path.join(caminho_recursos, "iconeKonan.png"))
             pygame.display.set_icon(self.icone)
             
             self.fundoStart = pygame.image.load(os.path.join(caminho_recursos, "fundoStart.png"))
@@ -577,3 +577,4 @@ class SharinganAnimado(pygame.sprite.Sprite):
 if __name__ == "__main__":
     jogo = Game()
     jogo.show_start_screen()
+ 
