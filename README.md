@@ -37,9 +37,9 @@ Nome: João Paulo Pasolini
 RA: 1138273
 
 👾 Colaborador
-Testador do Jogo: [NOME DO COLEGA TESTADOR]
+Testador do Jogo: [Luis Eduardo Moroso]
 
-RA: [RA DO COLEGA TESTADOR]
+RA: [1138541]
 
 🎓 Projeto Académico
 Este projeto foi desenvolvido como parte da Atividade Avaliativa (G2) da disciplina de Pensamento Computacional na Atitus Educação, sob a orientação do Professor Marcos Roberto dos Santos.
