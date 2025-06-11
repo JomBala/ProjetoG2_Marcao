@@ -8,7 +8,6 @@ from tkinter import messagebox
 import sys
 import json
 import math 
-# --- ALTERAÇÃO 1: Importar as novas funções ---
 from recursos.utilidades import get_timestamp_formatado
 from recursos.funcoes import registrar_partida, obter_ultimos_registros
 
@@ -16,9 +15,9 @@ from recursos.funcoes import registrar_partida, obter_ultimos_registros
 
 class Game:
     def __init__(self):
-        """
-        Inicializador do jogo. Configura tela, relógio, carrega assets e define constantes.
-        """
+        
+        # --- Inicializador do jogo. Configura tela, relógio, carrega assets e define constantes ---
+        
         pygame.init()
         pygame.mixer.init()
 
@@ -43,12 +42,13 @@ class Game:
         self.relogio = pygame.time.Clock()
         self.engine = pyttsx3.init()
         self.engine.setProperty('rate', 150)
+        self.engine.setProperty('volume', 1.0)
         
         # --- Carregamento de Assets ---
         self.carregar_assets()
 
     def carregar_assets(self):
-        """Carrega todas as imagens, fontes e sons em um só lugar."""
+        # --- Carrega todas as imagens, fontes e sons em um só lugar ---
         try:
             caminho_recursos = "Recursos/assets/"
             self.icone = pygame.image.load(os.path.join(caminho_recursos, "icone.png"))
@@ -68,6 +68,7 @@ class Game:
             self.som_entrada = pygame.mixer.Sound(os.path.join(caminho_recursos, "entradasound.mp3"))
             self.som_instrucoes = pygame.mixer.Sound(os.path.join(caminho_recursos, "instrucoes.mp3"))
             self.musica_jogo_path = os.path.join(caminho_recursos, "musicaPrincipal.mp3")
+            self.musica_derrota_path = os.path.join(caminho_recursos, "musicaFim.mp3")
             
             self.fonteTexto = pygame.font.Font(os.path.join(caminho_recursos, "Audiowide-Regular.ttf"), 16)
             self.fonteMenu = pygame.font.Font(os.path.join(caminho_recursos, "roguehero.ttf"), 20)
@@ -91,6 +92,7 @@ class Game:
         
         pygame.mixer.music.stop() 
         self.som_entrada.play(-1)
+        
         while True:
             mouse_pos = pygame.mouse.get_pos()
             self.tela.blit(self.fundoStart, (0, 0))
@@ -182,8 +184,6 @@ class Game:
             pygame.display.update()
             self.relogio.tick(self.FPS)
     
-    # --- ALTERAÇÃO 2: Remover o método registrar_partida daqui ---
-    # def registrar_partida(self, player_name, pontos): -> ESTA FUNÇÃO FOI MOVIDA PARA funcoes.py
 
     def show_pause_overlay(self):
         overlay = pygame.Surface((self.LARGURA_TELA, self.ALTURA_TELA), pygame.SRCALPHA)
@@ -195,9 +195,14 @@ class Game:
         self.tela.blit(texto_pausa, rect_pausa)
     
     def show_game_over_screen(self):
+
+        pygame.mixer.music.stop()
+
+        pygame.mixer.music.load(self.musica_derrota_path)
+        pygame.mixer.music.play(loops=-1)
+
         self.falar("Não existe redenção, só existe o fim")
         
-        # --- ALTERAÇÃO 3: Chamar a função importada para obter os scores ---
         ultimos_scores = obter_ultimos_registros(5)
         
         while True:
@@ -234,6 +239,7 @@ class Game:
                     sys.exit()
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     if botao_rect.collidepoint(mouse_pos):
+                        pygame.mixer.music.stop() 
                         self.show_start_screen()
                         return
 
@@ -304,7 +310,6 @@ class Game:
 
                 if pygame.sprite.spritecollide(konan, projeteis, True):
                     pygame.mixer.music.stop()
-                    # --- ALTERAÇÃO 4: Chamar a função importada ---
                     registrar_partida(player_name, pontos // 10)
                     self.show_game_over_screen()
                     return

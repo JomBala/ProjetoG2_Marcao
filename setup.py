@@ -3,7 +3,7 @@ import cx_Freeze
 executaveis = [ 
                cx_Freeze.Executable(script="feito.py", icon="assets/icone.ico") ]
 cx_Freeze.setup(
-    name = "Iron Man",
+    name = "Paper Run: Konan Edition",
     options={
         "build_exe":{
             "packages":["pygame"],
