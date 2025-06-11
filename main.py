@@ -4,10 +4,9 @@ import random
 import os
 import tkinter as tk
 import pyttsx3
+import speech_recognition as sr 
 from tkinter import messagebox
 import sys
-import json
-import math 
 from recursos.utilidades import get_timestamp_formatado
 from recursos.funcoes import registrar_partida, obter_ultimos_registros
 
@@ -111,43 +110,88 @@ class Game:
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     if botao_iniciar_rect.collidepoint(mouse_pos):
                         self.som_entrada.stop()
-                        self.get_player_name()
+                        self.get_player_name_by_voice()
                     if botao_sair_rect.collidepoint(mouse_pos):
                         pygame.quit()
                         sys.exit()
             pygame.display.update()
             self.relogio.tick(self.FPS)
 
-    def get_player_name(self):
+    def get_player_name_by_voice(self):
+        # --- Usa voz para obter o nome do jogador, com confirmação visual no Tkinter ---
+        
+        nome_final = None
 
-        nome_coletado = None
-        root = tk.Tk()
-        root.title("Informe seu Nome")
-        root.withdraw()
-        largura_janela = 300
-        altura_janela = 120
-        pos_x = (root.winfo_screenwidth() - largura_janela) // 2
-        pos_y = (root.winfo_screenheight() - altura_janela) // 2
-        root.geometry(f"{largura_janela}x{altura_janela}+{pos_x}+{pos_y}")
-        root.deiconify()
-        def obter_nome():
-            nonlocal nome_coletado
-            nome_coletado = entry_nome.get().strip()
-            if not nome_coletado:
-                messagebox.showwarning("Aviso", "Por favor, digite seu nome!")
+        def ouvir_e_reconhecer():
+            rec = sr.Recognizer()
+            with sr.Microphone() as source:
+                label_status.config(text="Ouvindo...", fg="red")
+                root.update()
+                
+                rec.pause_threshold = 0.8
+                rec.adjust_for_ambient_noise(source, duration=1)
+                audio = rec.listen(source)
+                
+                label_status.config(text="Processando...", fg="orange")
+                root.update()
+
+            try:
+                texto = rec.recognize_google(audio, language='pt-BR')
+                label_status.config(text="Nome Reconhecido:", fg="green")
+                return texto.capitalize()
+            except sr.UnknownValueError:
+                messagebox.showinfo("Aviso", "Não consegui entender. Tente de novo.")
+                label_status.config(text="Diga o seu nome", fg="black")
+                return ""
+            except sr.RequestError as e:
+                messagebox.showerror("Erro", f"Erro no serviço de reconhecimento; {e}")
+                label_status.config(text="Erro de conexão", fg="black")
+                return ""
+
+        while True:
+            root = tk.Tk()
+            root.title("Diga o seu Nome")
+            largura_janela, altura_janela = 400, 180
+            pos_x = (root.winfo_screenwidth() - largura_janela) // 2
+            pos_y = (root.winfo_screenheight() - altura_janela) // 2
+            root.geometry(f"{largura_janela}x{altura_janela}+{pos_x}+{pos_y}")
+            
+            nome_var = tk.StringVar(root, value="...")
+
+            def tentar_de_novo():
+                self.falar("Diga o seu nome, por favor.")
+                nome_capturado = ouvir_e_reconhecer()
+                if nome_capturado:
+                    nome_var.set(nome_capturado)
+
+            def confirmar():
+                nonlocal nome_final
+                nome_candidato = nome_var.get()
+                if nome_candidato and nome_candidato != "...":
+                    nome_final = nome_candidato
+                    root.destroy()
+                else:
+                    messagebox.showwarning("Nome Inválido", "Por favor, diga um nome válido antes de confirmar.")
+
+            label_status = tk.Label(root, text="Diga o seu nome", font=("Arial", 12))
+            label_status.pack(pady=(10, 0))
+            
+            tk.Label(root, textvariable=nome_var, font=("Arial", 18, "bold"), fg="blue").pack(pady=5)
+            
+            frame_botoes = tk.Frame(root)
+            frame_botoes.pack(pady=15)
+            tk.Button(frame_botoes, text="Falar de Novo", command=tentar_de_novo, font=("Arial", 10)).pack(side=tk.LEFT, padx=15)
+            tk.Button(frame_botoes, text="Confirmar", command=confirmar, font=("Arial", 10), bg="#90ee90").pack(side=tk.LEFT, padx=15)
+            
+            root.after(200, tentar_de_novo)
+            root.mainloop()
+
+            if nome_final:
+                self.show_instructions_screen(nome_final)
+                return
             else:
-                root.destroy()
-        label = tk.Label(root, text="Digite seu nome para continuar:")
-        label.pack(pady=10)
-        entry_nome = tk.Entry(root)
-        entry_nome.pack(pady=5)
-        botao = tk.Button(root, text="Confirmar", command=obter_nome)
-        botao.pack(pady=10)
-        root.mainloop()
-        if nome_coletado:
-            self.show_instructions_screen(nome_coletado)
-        else:
-            self.show_start_screen()
+                self.show_start_screen()
+                return
 
     def show_instructions_screen(self, player_name):
         
@@ -195,13 +239,11 @@ class Game:
         self.tela.blit(texto_pausa, rect_pausa)
     
     def show_game_over_screen(self):
-
+        
         pygame.mixer.music.stop()
-
         pygame.mixer.music.load(self.musica_derrota_path)
+        pygame.mixer.music.set_volume(0.4)
         pygame.mixer.music.play(loops=-1)
-
-        self.falar("Não existe redenção, só existe o fim")
         
         ultimos_scores = obter_ultimos_registros(5)
         
@@ -268,6 +310,7 @@ class Game:
         pygame.time.set_timer(EVENTO_TIRO_OBITO, intervalo_tiro_atual) 
         
         pygame.mixer.music.load(self.musica_jogo_path)
+        pygame.mixer.music.set_volume(0.3)
         pygame.mixer.music.play(-1)
         
         pontos = 0
